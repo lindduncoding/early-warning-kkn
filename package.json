@@ -1,0 +1,20 @@
+{
+  "name": "early-warning-kkn",
+  "version": "1.0.0",
+  "description": "Website Early Warning System KKN-PPM UGM II 2025 Bolo Bulukerto",
+  "main": "index.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "server:dev": "nodemon server/index.js"
+  },
+  "author": "Fidelya Fredelina",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.0.1",
+    "express": "^5.1.0",
+    "mongodb": "^6.17.0",
+    "node-cron": "^4.2.0",
+    "nodemon": "^3.1.10"
+  }
+}
