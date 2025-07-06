@@ -25,6 +25,14 @@ export function getDBHandle (dbName) {
   return client.db(dbName)
 }
 
+// Insertion
 export async function insertWeatherData (DBHandle, weatherObject) {
-  await DBHandle.collection('cuaca').insertOne({ ...weatherObject })
+  try{
+    await client.connect()
+    const result = await DBHandle.collection('cuaca').insertMany(weatherObject)
+    console.log(`Inserted ${result.insertedCount} documents`)
+  }catch (err){
+    console.error("Error at ", err)
+  }
+  await client.close()
 }
