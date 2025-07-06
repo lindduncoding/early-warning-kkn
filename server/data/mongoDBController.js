@@ -27,12 +27,23 @@ export function getDBHandle (dbName) {
 
 // Insertion
 export async function insertWeatherData (DBHandle, weatherObject) {
-  try{
-    await client.connect()
+  try {
     const result = await DBHandle.collection('cuaca').insertMany(weatherObject)
     console.log(`Inserted ${result.insertedCount} documents`)
-  }catch (err){
-    console.error("Error at ", err)
+  } catch (err){
+    console.error('Error at: ', err)
   }
-  await client.close()
+}
+
+// Get summarized weather data
+export async function getSummarizedWeather (DBHandle) {
+  try {
+    const weather = await DBHandle.collection('cuaca')
+      .find({})
+      .project({ datetime: 1, t: 1, tcc: 1, hu: 1, weather_desc: 1, _id: 0 })
+      .toArray()
+    return weather
+  } catch (err) {
+    console.error('Error at: ', err)
+  }
 }
