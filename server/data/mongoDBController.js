@@ -26,19 +26,23 @@ export function getDBHandle (dbName) {
 }
 
 // Insertion
-export async function insertWeatherData (DBHandle, weatherObject) {
-  try {
-    const result = await DBHandle.collection('cuaca').insertMany(weatherObject)
-    console.log(`Inserted ${result.insertedCount} documents`)
-  } catch (err){
-    console.error('Error at: ', err)
+export async function upsertWeatherData(DBHandle, weatherArray) {
+  const collection = DBHandle.collection('cuaca_dev')
+
+  for (const entry of weatherArray) {
+    const datetime = new Date(entry.datetime)
+    await collection.updateOne(
+      { _id: datetime },                     
+      { $set: { ...entry, datetime } }, 
+      { upsert: true }
+    )
   }
 }
 
 // Get summarized weather data
 export async function getSummarizedWeather (DBHandle) {
   try {
-    const weather = await DBHandle.collection('cuaca')
+    const weather = await DBHandle.collection('cuaca_dev')
       .find({})
       .project({ datetime: 1, t: 1, tcc: 1, hu: 1, weather_desc: 1, _id: 0 })
       .toArray()

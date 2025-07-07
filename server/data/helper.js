@@ -1,4 +1,12 @@
 import * as DB from './mongoDBController.js'
+import dotenv from 'dotenv'
+
+// Read .env file
+dotenv.config()
+
+// Retrieve from .env file
+const ID = process.env.ID ?? 'id'
+const SESS_ID = process.env.SESS_ID ?? 'session'
 
 export async function fetchUrl(url){
     const response = await fetch(url)
@@ -46,7 +54,56 @@ export async function getAnomalousWeather(DBHandle) {
       }
     }
 
-    return { 
-      total: data.length, 
-      anomalies 
-    }}
+  return anomalies
+}
+
+async function sendMessages(phoneNumbers, text) {
+  for (const phone of phoneNumbers) {
+    const response = await fetch('https://api-zawa.azickri.com/message', {
+      method: 'POST',
+      headers: {
+        "id": ID,
+        "session-id": SESS_ID,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        "phone": phone,
+        "type": "text",
+        "text": text // dynamic message
+      })
+    });
+
+    const data = await response.json();
+    console.log(`Sent to ${phone}:`, data);
+  }
+}
+
+export async function checkAndNotifyAnomalies(phoneNumbers, DBHandle) {
+  const anomalies = await getAnomalousWeather(DBHandle)
+
+  if (anomalies.length === 0) {
+    console.log("No anomalies detected")
+    return
+  }
+
+  const today = new Date().toISOString().slice(0, 10) 
+  const messages = []
+
+  for (const anomaly of anomalies) {
+  const { datetime, description, deltas } = anomaly
+  const dateStr = new Date(datetime).toISOString().slice(0, 10)
+
+  if (dateStr !== today) continue
+
+  const [paramKey] = Object.keys(deltas)
+  const { change, threshold } = deltas[paramKey]
+
+  const messageText = `Pada ${datetime}, diprediksi ${description}, karena perubahan ekstrim pada ${paramKey} sebesar ${change} (normal: ${threshold})`
+  messages.push(messageText)
+  }
+
+  if (messages.length > 0) {
+    const fullMessage = `Anomali cuaca Krandegan terdeteksi hari ini:\n\n${messages.join('\n')}`
+    await sendMessages(phoneNumbers, fullMessage)
+  }
+}
