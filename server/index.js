@@ -6,13 +6,9 @@ import * as Anomaly from './data/helper.js'
 
 const DBHandle = DB.getDBHandle('BMKG')
 const app = new Express()
-const phones = [
-  "6281286281761",
-  "6285604039883",
-  "6285155331120"
-]
+const phones = process.env.PHONES.split(',').map(p => p.trim())
 
-// Fetch, insert, and calculate anomaly (if any)
+// Fetch, insert, calculate and broadcast anomaly (if any)
 async function main(){
   const weatherArray = await Anomaly.fetchUrl('https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=33.12.18.2006')
   await DB.upsertWeatherData(DBHandle, weatherArray)
@@ -20,8 +16,8 @@ async function main(){
 }
 
 // Schedule API
-cron.schedule('0 * * * *', () => {
-  console.log('Service is running every hour')
+cron.schedule('0 */8 * * *', () => {
+  console.log('Service is running every 8 hour')
   main()
 })
 

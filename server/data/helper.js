@@ -89,6 +89,12 @@ export async function checkAndNotifyAnomalies(phoneNumbers, DBHandle) {
   const today = new Date().toISOString().slice(0, 10) 
   const messages = []
 
+  const paramDescriptions = {
+    tcc: 'persentase tutupan awan',
+    hu: 'kelembapan udara',
+    t: 'suhu udara'
+  }
+
   for (const anomaly of anomalies) {
   const { datetime, description, deltas } = anomaly
   const dateStr = new Date(datetime).toISOString().slice(0, 10)
@@ -98,12 +104,14 @@ export async function checkAndNotifyAnomalies(phoneNumbers, DBHandle) {
   const [paramKey] = Object.keys(deltas)
   const { change, threshold } = deltas[paramKey]
 
-  const messageText = `Pada ${datetime}, diprediksi ${description}, karena perubahan ekstrim pada ${paramKey} sebesar ${change} (normal: ${threshold})`
+  const paramDesc = paramDescriptions[paramKey] || paramKey
+
+  const messageText = `Pada ${new Date(datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, diprediksi ${description}, karena perubahan ekstrim pada ${paramDesc} sebesar ${change} (normal: ${threshold})`
   messages.push(messageText)
   }
 
   if (messages.length > 0) {
-    const fullMessage = `Anomali cuaca Krandegan terdeteksi hari ini:\n\n${messages.join('\n')}`
+    const fullMessage = `Perubahan cuaca Krandegan terdeteksi hari ini (prediksi BMKG):\n\n${messages.join('\n')}\n\nInformasi selengkapnya: https://www.bmkg.go.id/cuaca/potensi-cuaca-ekstrem`
     await sendMessages(phoneNumbers, fullMessage)
   }
 }
