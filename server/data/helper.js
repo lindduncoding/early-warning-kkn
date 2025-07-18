@@ -36,11 +36,13 @@ export async function getAnomalousWeather(DBHandle) {
         const diff = Math.abs(curr[f] - prev[f])
         const isAnomaly = diff > thresholds[f]
 
-        if (isAnomaly) {
+        const weatherRelevant = /(berawan|hujan|kabut)/i.test(curr.weather_desc)
+
+        if (isAnomaly && weatherRelevant) {
           changes[f] = {
-            change: +(curr[f] - prev[f]).toFixed(1),
+            change: diff,
             threshold: thresholds[f],
-            isAnomaly
+            isAnomaly: true
           }
         }
       }
@@ -106,7 +108,19 @@ export async function checkAndNotifyAnomalies(phoneNumbers, DBHandle) {
 
   const paramDesc = paramDescriptions[paramKey] || paramKey
 
-  const messageText = `Pada ${new Date(datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}, diprediksi ${description}, karena perubahan ekstrim pada ${paramDesc} sebesar ${change} (normal: ${threshold})`
+  const time = new Date(datetime).toLocaleTimeString([], {
+  hour: '2-digit',
+  minute: '2-digit'
+})
+
+const date = new Date(datetime).toLocaleDateString('id-ID', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+})
+
+  const messageText = `Pada ${date} pukul ${time}, diprediksi ${description}, karena perubahan ekstrim pada ${paramDesc} sebesar ${change} (normal: ${threshold})`
   messages.push(messageText)
   }
 

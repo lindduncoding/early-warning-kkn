@@ -21,6 +21,8 @@ cron.schedule('0 */8 * * *', () => {
   main()
 })
 
+// main()
+
 // Attach router
 app.use('/data', DataRouter)
 
