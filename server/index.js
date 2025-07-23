@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import Express from 'express'
 import DataRouter from './api/data.js'
+import AuthorizeRouter from './api/authorize.js'
 import * as DB from './data/mongoDBController.js'
 import * as Anomaly from './data/helper.js'
 
@@ -21,10 +22,9 @@ cron.schedule('0 */8 * * *', () => {
   main()
 })
 
-// main()
-
 // Attach router
 app.use('/data', DataRouter)
+app.use('/api', AuthorizeRouter)
 
 // Start the server
 app.listen(3000, () => {

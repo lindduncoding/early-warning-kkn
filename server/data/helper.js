@@ -60,23 +60,26 @@ export async function getAnomalousWeather(DBHandle) {
 }
 
 async function sendMessages(phoneNumbers, text) {
-  for (const phone of phoneNumbers) {
-    const response = await fetch('https://api-zawa.azickri.com/message', {
-      method: 'POST',
-      headers: {
-        "id": ID,
-        "session-id": SESS_ID,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        "phone": phone,
-        "type": "text",
-        "text": text // dynamic message
+  try {
+    for (const phone of phoneNumbers) {
+      const response = await fetch('https://api-zawa.azickri.com/message', {
+        method: 'POST',
+        headers: {
+          "id": ID,
+          "session-id": SESS_ID,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          "phone": phone,
+          "type": "text",
+          "text": text // dynamic message
+        })
       })
-    });
-
-    const data = await response.json();
-    console.log(`Sent to ${phone}:`, data);
+      const data = await response.json();
+      console.log(`Sent to ${phone}:`, data)
+    }
+  } catch (err) {
+    console.error(err)
   }
 }
 
@@ -87,7 +90,7 @@ export async function checkAndNotifyAnomalies(phoneNumbers, DBHandle) {
     console.log("No anomalies detected")
     return
   }
-
+  
   const today = new Date().toISOString().slice(0, 10) 
   const messages = []
 
