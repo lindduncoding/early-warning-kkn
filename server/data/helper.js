@@ -22,42 +22,46 @@ export async function getAnomalousWeather(DBHandle) {
   const data = await DB.getSummarizedWeather(DBHandle)
   const sorted = [...data].sort((a, b) => new Date(a.datetime) - new Date(b.datetime))
 
-  // Detect sudden changes
-  const thresholds = { t: 4, tcc: 30, hu: 20 }
-  const features = ['t', 'tcc', 'hu']
   const anomalies = []
+  const thresholds = {
+    hujanLebat: { tcc: 90 },   
+    kemarauPanjang: { hu: 70 } 
+  }
 
-  for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1]
-      const curr = sorted[i]
-      const changes = {}
+  for (const curr of sorted) {
+    const desc = curr.weather_desc.toLowerCase()
 
-      for (const f of features) {
-        const diff = Math.abs(curr[f] - prev[f])
-        const isAnomaly = diff > thresholds[f]
-
-        const weatherRelevant = /(berawan|hujan|kabut)/i.test(curr.weather_desc)
-
-        if (isAnomaly && weatherRelevant) {
-          changes[f] = {
-            change: diff,
-            threshold: thresholds[f],
-            isAnomaly: true
-          }
+    // --- CATEGORY 1: Hujan Lebat ---
+    if (curr.tcc > thresholds.hujanLebat.tcc && /(berawan|kabur|hujan)/.test(desc)) {
+      anomalies.push({
+        datetime: curr.datetime,
+        description: curr.weather_desc,
+        category: "Hujan Lebat",
+        details: {
+          tcc: curr.tcc,
+          hu: curr.hu
         }
-      }
-
-      if (Object.keys(changes).length > 0) {
-        anomalies.push({
-          datetime: curr.datetime,
-          description: curr.weather_desc,
-          deltas: changes
-        })
-      }
+      })
+      continue
     }
+
+    // --- CATEGORY 2: Kemarau Panjang ---
+    if (curr.hu < thresholds.kemarauPanjang.hu && /cerah/.test(desc)) {
+      anomalies.push({
+        datetime: curr.datetime,
+        description: curr.weather_desc,
+        category: "Kemarau Panjang",
+        details: {
+          tcc: curr.tcc,
+          hu: curr.hu
+        }
+      })
+    }
+  }
 
   return anomalies
 }
+
 
 async function sendMessages(phoneNumbers, text) {
   try {
@@ -86,49 +90,47 @@ async function sendMessages(phoneNumbers, text) {
 export async function checkAndNotifyAnomalies(phoneNumbers, DBHandle) {
   const anomalies = await getAnomalousWeather(DBHandle)
 
-  if (anomalies.length === 0) {
-    console.log("No anomalies detected")
-    return
-  }
-  
-  const today = new Date().toISOString().slice(0, 10) 
-  const messages = []
-
-  const paramDescriptions = {
-    tcc: 'persentase tutupan awan',
-    hu: 'kelembapan udara',
-    t: 'suhu udara'
-  }
+  const today = new Date().toISOString().slice(0, 10)
+  const categoryMessages = []
 
   for (const anomaly of anomalies) {
-  const { datetime, description, deltas } = anomaly
-  const dateStr = new Date(datetime).toISOString().slice(0, 10)
+    const dateStr = new Date(anomaly.datetime).toISOString().slice(0, 10)
+    if (dateStr !== today) continue
 
-  if (dateStr !== today) continue
+    const time = new Date(anomaly.datetime).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
 
-  const [paramKey] = Object.keys(deltas)
-  const { change, threshold } = deltas[paramKey]
+    const date = new Date(anomaly.datetime).toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
 
-  const paramDesc = paramDescriptions[paramKey] || paramKey
+    let messageText = `Pada ${date} pukul ${time}, terdeteksi kategori *${anomaly.category}* (${anomaly.description})`
+    
+    // Add detail info if available
+    if (anomaly.details) {
+      if (anomaly.category === "Hujan Lebat") {
+        messageText += ` dengan tutupan awan ${anomaly.details.tcc}% dan kelembapan ${anomaly.details.hu}%`
+      } else if (anomaly.category === "Kemarau Panjang") {
+        messageText += ` dengan kelembapan ${anomaly.details.hu}%`
+      }
+    }
 
-  const time = new Date(datetime).toLocaleTimeString([], {
-  hour: '2-digit',
-  minute: '2-digit'
-})
-
-const date = new Date(datetime).toLocaleDateString('id-ID', {
-  weekday: 'long',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-})
-
-  const messageText = `Pada ${date} pukul ${time}, diprediksi ${description}, karena perubahan ekstrim pada ${paramDesc} sebesar ${change} (normal: ${threshold})`
-  messages.push(messageText)
+    categoryMessages.push(messageText)
   }
 
-  if (messages.length > 0) {
-    const fullMessage = `Perubahan cuaca Krandegan terdeteksi hari ini (prediksi BMKG):\n\n${messages.join('\n')}\n\nInformasi selengkapnya: https://www.bmkg.go.id/cuaca/potensi-cuaca-ekstrem`
+  // Send final message
+  if (categoryMessages.length > 0) {
+    const fullMessage = 
+      `Peringatan Cuaca Krandegan (BMKG):\n\n${categoryMessages.join('\n')}\n\n` +
+      `Info lebih lengkap: https://www.bmkg.go.id/cuaca/potensi-cuaca-ekstrem`
+
     await sendMessages(phoneNumbers, fullMessage)
+  } else {
+    await sendMessages(phoneNumbers, "Hari ini tidak ada potensi hujan lebat atau kemarau panjang yang terdeteksi.")
   }
 }
