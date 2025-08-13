@@ -24,11 +24,9 @@ It is designed for localized weather monitoring (example: *Krandegan*) and uses 
 
 ```
 .
-├── src/
-│   ├── routes/              # API routes (QR connect, authorization, etc.)
-│   ├── services/            # Weather anomaly detection & notification logic
-│   ├── db/                  # MongoDB database helpers
-│   ├── utils/               # Helper functions
+├── server/
+│   ├── api/                  # API routes (QR connect, authorization, etc.)
+│   ├── data/                 # Weather anomaly detection & notification logic
 │   └── index.js              # App entry point
 ├── .env                      # Environment variables (not committed to GitHub)
 ├── package.json
@@ -114,6 +112,14 @@ Deletes the current session
 
 More info at Zawa's ![documentation.](https://azickri.gitbook.io/zawa)
 
+### `GET /data/weather`
+
+Retrieves overall weather data
+
+### `GET /data/anomaly`
+
+Retrieves anomalous weather
+
 ---
 
 ## 🛠 Installation
@@ -131,7 +137,7 @@ npm install
 ```bash
 node server/index.js
 
-# or for always on deploymeny
+# or for always on deployment
 nohup node server/index.js > output.log 2>&1 &
 ```
 
